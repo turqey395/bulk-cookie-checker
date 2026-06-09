@@ -6,13 +6,25 @@ import threading
 import json
 import requests
 from urllib.parse import unquote
+from ttkbootstrap import Style
+import ttkbootstrap as ttk_bs
 
 class CookieCheckerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Bulk Cookie Checker")
-        self.root.geometry("1200x750")
-        self.root.configure(bg="#f0f0f0")
+        self.root.title("Netflix Cookie Checker")
+        self.root.geometry("1400x850")
+        
+        # Configure colors
+        self.bg_color = "#0f0f0f"
+        self.primary_color = "#e50914"  # Netflix red
+        self.secondary_color = "#221f1f"
+        self.accent_color = "#f5f5f1"
+        self.text_color = "#ffffff"
+        self.success_color = "#31c754"
+        self.error_color = "#ff453a"
+        
+        self.root.configure(bg=self.bg_color)
         
         # Configure style
         self.setup_styles()
@@ -22,76 +34,137 @@ class CookieCheckerGUI:
         self.checking = False
     
     def setup_styles(self):
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
-        self.style.configure('Header.TLabel', font=('Arial', 12, 'bold'), background='#f0f0f0')
-        self.style.configure('TButton', font=('Arial', 10))
-        self.style.configure('TLabel', background='#f0f0f0')
+        style = ttk.Style()
+        style.theme_use('darkly')
+        
+        # Configure custom colors
+        style.configure('Dark.TFrame', background=self.bg_color)
+        style.configure('Secondary.TFrame', background=self.secondary_color)
+        style.configure('Title.TLabel', font=('Segoe UI', 20, 'bold'), background=self.bg_color, foreground=self.primary_color)
+        style.configure('Header.TLabel', font=('Segoe UI', 11, 'bold'), background=self.secondary_color, foreground=self.accent_color)
+        style.configure('TLabel', font=('Segoe UI', 10), background=self.secondary_color, foreground=self.text_color)
+        style.configure('Status.TLabel', font=('Segoe UI', 9), background=self.bg_color, foreground=self.accent_color)
+        
+        # Button styling
+        style.configure('Primary.TButton', font=('Segoe UI', 10, 'bold'))
+        style.map('Primary.TButton',
+            foreground=[('pressed', self.bg_color), ('active', self.accent_color)],
+            background=[('pressed', self.primary_color), ('active', self.primary_color)])
+        
+        style.configure('Secondary.TButton', font=('Segoe UI', 9))
+        
+        # Treeview styling
+        style.configure('Treeview', font=('Segoe UI', 9), background=self.secondary_color, 
+                       foreground=self.text_color, fieldbackground=self.secondary_color, borderwidth=0)
+        style.configure('Treeview.Heading', font=('Segoe UI', 9, 'bold'), background=self.primary_color, 
+                       foreground=self.accent_color)
+        style.map('Treeview', background=[('selected', self.primary_color)])
     
     def create_widgets(self):
-        # Title
-        title_label = ttk.Label(self.root, text="Bulk Cookie Checker - Netflix Edition", style='Header.TLabel')
-        title_label.pack(pady=10)
+        # Main container
+        main_container = ttk.Frame(self.root, style='Dark.TFrame')
+        main_container.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         
-        # Input Section
-        input_frame = ttk.LabelFrame(self.root, text="Cookie Input", padding=10)
-        input_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Header section
+        header = ttk.Frame(main_container, style='Secondary.TFrame', height=100)
+        header.pack(fill=tk.X, padx=0, pady=0)
+        header.pack_propagate(False)
         
-        ttk.Label(input_frame, text="Paste cookies below (one per line):").pack(anchor=tk.W, pady=5)
+        # Netflix logo text
+        title_label = ttk.Label(header, text="🎬 Netflix Cookie Checker", style='Title.TLabel')
+        title_label.pack(pady=15, padx=20, anchor=tk.W)
         
-        self.input_text = scrolledtext.ScrolledText(input_frame, height=6, width=80, font=('Courier', 9))
-        self.input_text.pack(fill=tk.BOTH, expand=True, pady=5)
+        subtitle = ttk.Label(header, text="Check and validate Netflix authentication cookies • Test active status", 
+                            font=('Segoe UI', 9), background=self.secondary_color, foreground="#999999")
+        subtitle.pack(padx=20, anchor=tk.W)
         
-        # Buttons frame
-        button_frame = ttk.Frame(input_frame)
-        button_frame.pack(fill=tk.X, pady=5)
+        # Content area
+        content = ttk.Frame(main_container, style='Dark.TFrame')
+        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        ttk.Button(button_frame, text="Load from File", command=self.load_from_file).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Check Cookies (Format Only)", command=self.check_format_only).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Test Cookies (Active Check)", command=self.check_cookies_active).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Clear Input", command=self.clear_input).pack(side=tk.LEFT, padx=5)
+        # Left panel (Input)
+        left_panel = ttk.Frame(content, style='Secondary.TFrame')
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=0, pady=0, ipadx=15, ipady=15)
         
-        # Results Section
-        results_frame = ttk.LabelFrame(self.root, text="Results", padding=10)
-        results_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        input_label = ttk.Label(left_panel, text="📋 Cookie Input", style='Header.TLabel')
+        input_label.pack(anchor=tk.W, pady=(0, 10))
+        
+        desc_label = ttk.Label(left_panel, text="Paste Netflix cookies (one per line):", 
+                              font=('Segoe UI', 9), background=self.secondary_color, foreground="#CCCCCC")
+        desc_label.pack(anchor=tk.W, pady=(0, 8))
+        
+        self.input_text = scrolledtext.ScrolledText(left_panel, height=20, width=45, 
+                                                     font=('Courier New', 9), 
+                                                     bg="#1a1a1a", fg=self.text_color,
+                                                     insertbackground=self.primary_color,
+                                                     relief=tk.FLAT, borderwidth=1)
+        self.input_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        
+        # Control buttons
+        button_frame = ttk.Frame(left_panel, style='Secondary.TFrame')
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Button(button_frame, text="📂 Load File", command=self.load_from_file, style='Primary.TButton').pack(side=tk.LEFT, padx=3)
+        ttk.Button(button_frame, text="🧹 Clear", command=self.clear_input, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
+        
+        # Right panel (Results)
+        right_panel = ttk.Frame(content, style='Secondary.TFrame')
+        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(15, 0), pady=0, ipadx=15, ipady=15)
+        
+        result_header_frame = ttk.Frame(right_panel, style='Secondary.TFrame')
+        result_header_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        result_label = ttk.Label(result_header_frame, text="🔍 Results", style='Header.TLabel')
+        result_label.pack(side=tk.LEFT, anchor=tk.W)
+        
+        # Action buttons
+        action_frame = ttk.Frame(right_panel, style='Secondary.TFrame')
+        action_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Button(action_frame, text="✓ Check Format", command=self.check_format_only, style='Primary.TButton').pack(side=tk.LEFT, padx=3)
+        ttk.Button(action_frame, text="⚡ Test Active", command=self.check_cookies_active, style='Primary.TButton').pack(side=tk.LEFT, padx=3)
+        ttk.Button(action_frame, text="📊 Export JSON", command=self.export_json, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
+        ttk.Button(action_frame, text="📄 Export CSV", command=self.export_csv, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
+        ttk.Button(action_frame, text="🗑️ Clear", command=self.clear_results, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
         
         # Results tree
-        columns = ('Status', 'Valid Format', 'Active', 'Cookie Name', 'Value Preview', 'Domain', 'Path', 'Expires')
-        self.tree = ttk.Treeview(results_frame, columns=columns, height=12, show='tree headings')
+        columns = ('Status', 'Valid', 'Active', 'Name', 'Value', 'Domain', 'Path', 'Expires')
+        self.tree = ttk.Treeview(right_panel, columns=columns, height=25, show='tree headings')
         
         # Define column headings and widths
         self.tree.column('#0', width=0, stretch=tk.NO)
-        self.tree.column('Status', anchor=tk.W, width=60)
-        self.tree.column('Valid Format', anchor=tk.W, width=80)
-        self.tree.column('Active', anchor=tk.W, width=80)
-        self.tree.column('Cookie Name', anchor=tk.W, width=100)
-        self.tree.column('Value Preview', anchor=tk.W, width=120)
-        self.tree.column('Domain', anchor=tk.W, width=80)
-        self.tree.column('Path', anchor=tk.W, width=60)
+        self.tree.column('Status', anchor=tk.CENTER, width=50)
+        self.tree.column('Valid', anchor=tk.CENTER, width=60)
+        self.tree.column('Active', anchor=tk.CENTER, width=80)
+        self.tree.column('Name', anchor=tk.W, width=90)
+        self.tree.column('Value', anchor=tk.W, width=140)
+        self.tree.column('Domain', anchor=tk.W, width=90)
+        self.tree.column('Path', anchor=tk.CENTER, width=50)
         self.tree.column('Expires', anchor=tk.W, width=100)
         
         for col in columns:
             self.tree.heading(col, text=col)
         
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscroll=scrollbar.set)
+        # Scrollbars
+        scrollbar_v = ttk.Scrollbar(right_panel, orient=tk.VERTICAL, command=self.tree.yview)
+        scrollbar_h = ttk.Scrollbar(right_panel, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscroll=scrollbar_v.set, xscroll=scrollbar_h.set)
         
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        scrollbar_v.grid(row=0, column=1, sticky='ns')
+        scrollbar_h.grid(row=1, column=0, sticky='ew')
         
-        # Export frame
-        export_frame = ttk.Frame(self.root)
-        export_frame.pack(fill=tk.X, padx=10, pady=5)
+        right_panel.grid_rowconfigure(0, weight=1)
+        right_panel.grid_columnconfigure(0, weight=1)
         
-        ttk.Button(export_frame, text="Export Results (JSON)", command=self.export_json).pack(side=tk.LEFT, padx=5)
-        ttk.Button(export_frame, text="Export Results (CSV)", command=self.export_csv).pack(side=tk.LEFT, padx=5)
-        ttk.Button(export_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5)
+        # Footer
+        footer_frame = ttk.Frame(main_container, style='Secondary.TFrame', height=40)
+        footer_frame.pack(fill=tk.X, padx=0, pady=0)
+        footer_frame.pack_propagate(False)
         
-        # Status bar
-        self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        self.status_var = tk.StringVar(value="Ready • 0 cookies loaded")
+        status_bar = ttk.Label(footer_frame, textvariable=self.status_var, style='Status.TLabel')
+        status_bar.pack(side=tk.LEFT, padx=20, pady=10)
     
     def load_from_file(self):
         """Load cookies from a file"""
@@ -104,7 +177,8 @@ class CookieCheckerGUI:
                     content = f.read()
                 self.input_text.delete(1.0, tk.END)
                 self.input_text.insert(1.0, content)
-                self.status_var.set(f"Loaded cookies from file")
+                num_cookies = len([c for c in content.split('\n') if c.strip()])
+                self.status_var.set(f"Loaded {num_cookies} cookies from file")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {str(e)}")
     
@@ -126,10 +200,10 @@ class CookieCheckerGUI:
                 parsed = self.parse_cookie(cookie_str)
                 self.tree.insert('', 'end', values=(
                     '✓',
-                    'Valid',
-                    'Not Tested',
+                    '✓ Valid',
+                    '⏸️ Not Tested',
                     parsed.get('name', ''),
-                    parsed.get('value', '')[:40] + '...',
+                    parsed.get('value', '')[:35] + '...',
                     parsed.get('domain', ''),
                     parsed.get('path', ''),
                     parsed.get('expires', '')
@@ -137,16 +211,16 @@ class CookieCheckerGUI:
             except Exception as e:
                 self.tree.insert('', 'end', values=(
                     '✗',
-                    'Invalid',
-                    'N/A',
+                    '✗ Invalid',
+                    '❌ Error',
                     'ERROR',
-                    str(e)[:40],
+                    str(e)[:35],
                     '',
                     '',
                     ''
                 ))
         
-        self.status_var.set(f"Format check completed: {len(cookie_strings)} cookies")
+        self.status_var.set(f"Format check completed • {len(cookie_strings)} cookies checked")
     
     def check_cookies_active(self):
         """Check if cookies are actually working by testing with Netflix"""
@@ -165,7 +239,7 @@ class CookieCheckerGUI:
             messagebox.showwarning("Warning", "Please enter at least one cookie")
             return
         
-        self.status_var.set(f"Testing {len(cookie_strings)} cookies against Netflix...")
+        self.status_var.set(f"Testing {len(cookie_strings)} cookies...")
         self.root.update()
         
         for idx, cookie_str in enumerate(cookie_strings):
@@ -176,12 +250,14 @@ class CookieCheckerGUI:
                 # Test if active
                 is_active = self.test_netflix_cookie(parsed.get('value', ''))
                 
+                active_status = '✅ ACTIVE' if is_active else '❌ INACTIVE'
+                
                 self.tree.insert('', 'end', values=(
                     '✓' if is_active else '⚠',
-                    'Valid',
-                    '✓ ACTIVE' if is_active else '✗ INACTIVE/EXPIRED',
+                    '✓ Valid',
+                    active_status,
                     parsed.get('name', ''),
-                    parsed.get('value', '')[:40] + '...',
+                    parsed.get('value', '')[:35] + '...',
                     parsed.get('domain', ''),
                     parsed.get('path', ''),
                     parsed.get('expires', '')
@@ -189,10 +265,10 @@ class CookieCheckerGUI:
             except Exception as e:
                 self.tree.insert('', 'end', values=(
                     '✗',
-                    'Invalid',
+                    '✗ Invalid',
+                    '❌ Error',
                     'ERROR',
-                    'ERROR',
-                    str(e)[:40],
+                    str(e)[:35],
                     '',
                     '',
                     ''
@@ -204,7 +280,7 @@ class CookieCheckerGUI:
                 self.root.update()
         
         self.checking = False
-        self.status_var.set(f"Completed: {len(cookie_strings)} cookies tested")
+        self.status_var.set(f"Completed • {len(cookie_strings)} cookies tested")
     
     def test_netflix_cookie(self, cookie_value, timeout=5):
         """Test if Netflix cookie is active"""
@@ -228,18 +304,15 @@ class CookieCheckerGUI:
             )
             
             # Check response status
-            # 200 = Valid/Active cookie
-            # 401 = Unauthorized/Invalid cookie
-            # 403 = Forbidden/Expired
             if response.status_code == 200:
                 return True
             else:
                 return False
                 
         except requests.exceptions.Timeout:
-            return None  # Could not determine
+            return None
         except requests.exceptions.ConnectionError:
-            return None  # No internet
+            return None
         except Exception as e:
             return False
     
@@ -303,8 +376,8 @@ class CookieCheckerGUI:
                 with open(filepath, 'w', encoding='utf-8') as f:
                     json.dump(results, f, indent=2)
                 
-                messagebox.showinfo("Success", f"Results exported to {filepath}")
-                self.status_var.set(f"Exported {len(results)} results to JSON")
+                messagebox.showinfo("Success", f"✓ Exported {len(results)} results")
+                self.status_var.set(f"Exported to {filepath}")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {str(e)}")
     
@@ -324,14 +397,14 @@ class CookieCheckerGUI:
                 import csv
                 with open(filepath, 'w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
-                    writer.writerow(['Status', 'Valid Format', 'Active', 'Cookie Name', 'Value Preview', 'Domain', 'Path', 'Expires'])
+                    writer.writerow(['Status', 'Valid', 'Active', 'Name', 'Value', 'Domain', 'Path', 'Expires'])
                     
                     for item in self.tree.get_children():
                         values = self.tree.item(item)['values']
                         writer.writerow(values)
                 
-                messagebox.showinfo("Success", f"Results exported to {filepath}")
-                self.status_var.set(f"Exported {len(self.tree.get_children())} results to CSV")
+                messagebox.showinfo("Success", f"✓ Exported {len(self.tree.get_children())} results")
+                self.status_var.set(f"Exported to {filepath}")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {str(e)}")
 
