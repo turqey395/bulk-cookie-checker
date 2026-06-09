@@ -119,9 +119,12 @@ class CookieCheckerGUI:
         ttk.Button(action_frame, text="📄 Export CSV", command=self.export_csv, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
         ttk.Button(action_frame, text="🗑️ Clear", command=self.clear_results, style='Secondary.TButton').pack(side=tk.LEFT, padx=3)
         
-        # Results tree
+        # Results tree with scrollbars
+        tree_frame = ttk.Frame(right_panel, style='Secondary.TFrame')
+        tree_frame.pack(fill=tk.BOTH, expand=True)
+        
         columns = ('Status', 'Valid', 'Active', 'Name', 'Value', 'Domain', 'Path', 'Expires')
-        self.tree = ttk.Treeview(right_panel, columns=columns, height=25, show='tree headings')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, height=25, show='tree headings')
         
         # Define column headings and widths
         self.tree.column('#0', width=0, stretch=tk.NO)
@@ -138,16 +141,13 @@ class CookieCheckerGUI:
             self.tree.heading(col, text=col)
         
         # Scrollbars
-        scrollbar_v = ttk.Scrollbar(right_panel, orient=tk.VERTICAL, command=self.tree.yview)
-        scrollbar_h = ttk.Scrollbar(right_panel, orient=tk.HORIZONTAL, command=self.tree.xview)
+        scrollbar_v = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        scrollbar_h = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
         self.tree.configure(yscroll=scrollbar_v.set, xscroll=scrollbar_h.set)
         
-        self.tree.grid(row=0, column=0, sticky='nsew')
-        scrollbar_v.grid(row=0, column=1, sticky='ns')
-        scrollbar_h.grid(row=1, column=0, sticky='ew')
-        
-        right_panel.grid_rowconfigure(0, weight=1)
-        right_panel.grid_columnconfigure(0, weight=1)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar_v.pack(side=tk.RIGHT, fill=tk.Y)
+        scrollbar_h.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Footer
         footer_frame = ttk.Frame(main_container, style='Secondary.TFrame', height=40)
