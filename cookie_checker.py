@@ -6,8 +6,6 @@ import threading
 import json
 import requests
 from urllib.parse import unquote
-from ttkbootstrap import Style
-import ttkbootstrap as ttk_bs
 
 class CookieCheckerGUI:
     def __init__(self, root):
@@ -35,9 +33,8 @@ class CookieCheckerGUI:
     
     def setup_styles(self):
         style = ttk.Style()
-        style.theme_use('darkly')
         
-        # Configure custom colors
+        # Configure custom colors - no theme loading
         style.configure('Dark.TFrame', background=self.bg_color)
         style.configure('Secondary.TFrame', background=self.secondary_color)
         style.configure('Title.TLabel', font=('Segoe UI', 20, 'bold'), background=self.bg_color, foreground=self.primary_color)
@@ -46,11 +43,7 @@ class CookieCheckerGUI:
         style.configure('Status.TLabel', font=('Segoe UI', 9), background=self.bg_color, foreground=self.accent_color)
         
         # Button styling
-        style.configure('Primary.TButton', font=('Segoe UI', 10, 'bold'))
-        style.map('Primary.TButton',
-            foreground=[('pressed', self.bg_color), ('active', self.accent_color)],
-            background=[('pressed', self.primary_color), ('active', self.primary_color)])
-        
+        style.configure('Primary.TButton', font=('Segoe UI', 10, 'bold'), foreground=self.accent_color)
         style.configure('Secondary.TButton', font=('Segoe UI', 9))
         
         # Treeview styling
@@ -58,7 +51,6 @@ class CookieCheckerGUI:
                        foreground=self.text_color, fieldbackground=self.secondary_color, borderwidth=0)
         style.configure('Treeview.Heading', font=('Segoe UI', 9, 'bold'), background=self.primary_color, 
                        foreground=self.accent_color)
-        style.map('Treeview', background=[('selected', self.primary_color)])
     
     def create_widgets(self):
         # Main container
