@@ -6,248 +6,309 @@ import threading
 import json
 import requests
 from urllib.parse import unquote
-from PIL import Image, ImageDraw, ImageFilter
-import io
 
-class ModernCookieCheckerGUI:
+class PremiumCookieCheckerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Netflix Cookie Checker")
-        self.root.geometry("1600x900")
+        self.root.geometry("1700x950")
+        self.root.minsize(1200, 700)
         
-        # Modern color scheme
-        self.bg_dark = "#0a0e27"  # Deep dark blue
-        self.bg_secondary = "#1a1f3a"  # Slightly lighter blue
-        self.accent_red = "#e50914"  # Netflix red
-        self.accent_blue = "#564d8f"  # Purple accent
-        self.text_light = "#e0e0e0"
-        self.text_muted = "#8892b0"
-        self.success_green = "#10b981"
-        self.error_red = "#ef4444"
+        # Premium color palette
+        self.BG_MAIN = "#0f1419"  # Main background
+        self.BG_CARD = "#1a1f2e"  # Card background
+        self.BG_INPUT = "#141820"  # Input background
+        self.ACCENT_RED = "#e50914"  # Netflix red
+        self.ACCENT_BLUE = "#0080ff"  # Blue accent
+        self.ACCENT_GREEN = "#10b981"  # Green for success
+        self.TEXT_PRIMARY = "#ffffff"  # Primary text
+        self.TEXT_SECONDARY = "#a0aec0"  # Secondary text
+        self.BORDER_COLOR = "#2d3748"  # Border color
         
-        self.root.configure(bg=self.bg_dark)
+        self.root.configure(bg=self.BG_MAIN)
         
-        # Create custom styles
-        self.setup_modern_styles()
-        self.create_modern_ui()
+        self.setup_styles()
+        self.create_ui()
         self.checking = False
     
-    def setup_modern_styles(self):
+    def setup_styles(self):
         style = ttk.Style()
         
-        # Define custom styles
-        style.configure('Dark.TFrame', background=self.bg_dark)
-        style.configure('Card.TFrame', background=self.bg_secondary, relief=tk.FLAT)
+        # Configure all frame styles
+        style.configure('Main.TFrame', background=self.BG_MAIN)
+        style.configure('Card.TFrame', background=self.BG_CARD)
         
-        style.configure('Title.TLabel', 
-                       font=('Segoe UI', 24, 'bold'), 
-                       background=self.bg_dark, 
-                       foreground=self.accent_red)
+        # Label styles
+        style.configure('Title.TLabel',
+                       font=('Segoe UI', 26, 'bold'),
+                       background=self.BG_MAIN,
+                       foreground=self.ACCENT_RED)
         
         style.configure('Subtitle.TLabel',
-                       font=('Segoe UI', 9),
-                       background=self.bg_dark,
-                       foreground=self.text_muted)
+                       font=('Segoe UI', 10),
+                       background=self.BG_MAIN,
+                       foreground=self.TEXT_SECONDARY)
         
-        style.configure('SectionHeader.TLabel',
+        style.configure('SectionTitle.TLabel',
                        font=('Segoe UI', 13, 'bold'),
-                       background=self.bg_secondary,
-                       foreground=self.text_light)
+                       background=self.BG_CARD,
+                       foreground=self.ACCENT_RED)
         
-        style.configure('TLabel', 
-                       font=('Segoe UI', 9), 
-                       background=self.bg_secondary, 
-                       foreground=self.text_light)
+        style.configure('TLabel',
+                       font=('Segoe UI', 9),
+                       background=self.BG_CARD,
+                       foreground=self.TEXT_PRIMARY)
         
-        # Button styles
-        style.configure('Modern.TButton',
-                       font=('Segoe UI', 9, 'bold'),
-                       background=self.accent_red,
-                       foreground='white',
+        # Treeview style - DARK THEMED
+        style.configure('Premium.Treeview',
+                       font=('Segoe UI', 9),
+                       background=self.BG_INPUT,
+                       foreground=self.TEXT_PRIMARY,
+                       fieldbackground=self.BG_INPUT,
                        borderwidth=0,
-                       relief=tk.FLAT,
-                       padding=8)
+                       relief='flat')
         
-        style.configure('Secondary.TButton',
-                       font=('Segoe UI', 9),
-                       background=self.bg_secondary,
-                       foreground=self.text_light,
-                       borderwidth=1,
-                       relief=tk.FLAT,
-                       padding=6)
-        
-        # Treeview
-        style.configure('Modern.Treeview',
-                       font=('Segoe UI', 9),
-                       background=self.bg_secondary,
-                       foreground=self.text_light,
-                       fieldbackground=self.bg_secondary,
-                       borderwidth=0)
-        
-        style.configure('Modern.Treeview.Heading',
+        style.configure('Premium.Treeview.Heading',
                        font=('Segoe UI', 9, 'bold'),
-                       background=self.accent_blue,
-                       foreground='white',
-                       borderwidth=0)
+                       background=self.ACCENT_BLUE,
+                       foreground=self.TEXT_PRIMARY,
+                       borderwidth=0,
+                       relief='flat')
         
-        style.map('Modern.Treeview', background=[('selected', self.accent_red)])
-        style.map('Modern.Treeview.Heading', background=[('active', self.accent_red)])
+        style.map('Premium.Treeview',
+                 background=[('selected', self.ACCENT_RED)],
+                 foreground=[('selected', self.TEXT_PRIMARY)])
+        
+        style.map('Premium.Treeview.Heading',
+                 background=[('active', self.ACCENT_RED)])
     
-    def create_modern_ui(self):
-        # Main container with gradient effect
-        main = ttk.Frame(self.root, style='Dark.TFrame')
+    def create_ui(self):
+        # Main container
+        main = ttk.Frame(self.root, style='Main.TFrame')
         main.pack(fill=tk.BOTH, expand=True)
         
-        # === HEADER SECTION ===
-        header = tk.Frame(main, bg=self.bg_dark, height=110)
+        # ===== HEADER =====
+        self.create_header(main)
+        
+        # ===== CONTENT AREA =====
+        content_container = ttk.Frame(main, style='Main.TFrame')
+        content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=20)
+        
+        # Left panel - Input
+        self.create_left_panel(content_container)
+        
+        # Right panel - Results
+        self.create_right_panel(content_container)
+        
+        # ===== FOOTER =====
+        self.create_footer(main)
+    
+    def create_header(self, parent):
+        """Create header section"""
+        header = tk.Frame(parent, bg=self.BG_MAIN, height=120)
         header.pack(fill=tk.X, padx=0, pady=0)
         header.pack_propagate(False)
         
-        # Add a subtle line under header
-        line = tk.Frame(header, bg=self.accent_red, height=2)
-        line.pack(fill=tk.X, side=tk.BOTTOM)
+        # Accent line
+        accent_line = tk.Frame(header, bg=self.ACCENT_RED, height=3)
+        accent_line.pack(fill=tk.X, side=tk.BOTTOM)
         
         # Header content
-        header_content = tk.Frame(header, bg=self.bg_dark)
-        header_content.pack(fill=tk.BOTH, expand=True, padx=30, pady=15)
+        header_content = tk.Frame(header, bg=self.BG_MAIN)
+        header_content.pack(fill=tk.BOTH, expand=True, padx=30, pady=20)
         
-        title = tk.Label(header_content, text="🎬 Netflix Cookie Checker", 
-                        font=('Segoe UI', 28, 'bold'), 
-                        bg=self.bg_dark, fg=self.accent_red)
+        title = tk.Label(header_content,
+                        text="🎬 Netflix Cookie Checker",
+                        font=('Segoe UI', 28, 'bold'),
+                        bg=self.BG_MAIN,
+                        fg=self.ACCENT_RED)
         title.pack(anchor=tk.W)
         
-        subtitle = tk.Label(header_content, 
-                           text="Check and validate Netflix authentication cookies • Test active status • Export results",
-                           font=('Segoe UI', 9),
-                           bg=self.bg_dark, fg=self.text_muted)
-        subtitle.pack(anchor=tk.W, pady=(5, 0))
+        subtitle = tk.Label(header_content,
+                           text="Validate • Test • Export | Check Netflix authentication cookies in bulk",
+                           font=('Segoe UI', 10),
+                           bg=self.BG_MAIN,
+                           fg=self.TEXT_SECONDARY)
+        subtitle.pack(anchor=tk.W, pady=(8, 0))
+    
+    def create_left_panel(self, parent):
+        """Create left input panel"""
+        left = tk.Frame(parent, bg=self.BG_CARD, relief=tk.FLAT, bd=0)
+        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 20))
         
-        # === CONTENT AREA ===
-        content = ttk.Frame(main, style='Dark.TFrame')
+        # Border effect
+        border = tk.Frame(left, bg=self.BORDER_COLOR, width=1)
+        border.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        content = tk.Frame(left, bg=self.BG_CARD)
         content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # Left Panel - Input
-        left_panel = tk.Frame(content, bg=self.bg_secondary, highlightthickness=1, 
-                             highlightbackground=self.accent_blue)
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 20), 
-                       ipady=20, ipadx=20)
+        # Title
+        title = tk.Label(content,
+                        text="📋 Cookie Input",
+                        font=('Segoe UI', 12, 'bold'),
+                        bg=self.BG_CARD,
+                        fg=self.ACCENT_RED)
+        title.pack(anchor=tk.W, pady=(0, 12))
         
-        left_title = tk.Label(left_panel, text="📋 Cookie Input", 
-                             font=('Segoe UI', 12, 'bold'),
-                             bg=self.bg_secondary, fg=self.accent_red)
-        left_title.pack(anchor=tk.W, pady=(0, 10))
-        
-        desc = tk.Label(left_panel, text="Paste Netflix cookies (one per line):",
+        # Description
+        desc = tk.Label(content,
+                       text="Paste Netflix cookies below\n(one per line)",
                        font=('Segoe UI', 8),
-                       bg=self.bg_secondary, fg=self.text_muted)
-        desc.pack(anchor=tk.W, pady=(0, 10))
+                       bg=self.BG_CARD,
+                       fg=self.TEXT_SECONDARY,
+                       justify=tk.LEFT)
+        desc.pack(anchor=tk.W, pady=(0, 12))
         
         # Input text area
         self.input_text = scrolledtext.ScrolledText(
-            left_panel, height=24, width=50,
+            content,
+            height=26,
+            width=48,
             font=('Courier New', 8),
-            bg="#0f1428", fg=self.text_light,
-            insertbackground=self.accent_red,
-            relief=tk.FLAT, borderwidth=0,
-            highlightthickness=1, highlightbackground=self.accent_blue
+            bg=self.BG_INPUT,
+            fg=self.TEXT_PRIMARY,
+            insertbackground=self.ACCENT_RED,
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground=self.BORDER_COLOR,
+            wrap=tk.WORD
         )
         self.input_text.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
         
-        # Input buttons
-        input_btn_frame = tk.Frame(left_panel, bg=self.bg_secondary)
-        input_btn_frame.pack(fill=tk.X)
+        # Buttons
+        button_frame = tk.Frame(content, bg=self.BG_CARD)
+        button_frame.pack(fill=tk.X, pady=(15, 0))
         
-        tk.Button(input_btn_frame, text="📂 Load File", command=self.load_from_file,
-                 bg=self.accent_blue, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=15, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=3)
+        load_btn = tk.Button(
+            button_frame,
+            text="📂 Load File",
+            command=self.load_from_file,
+            bg=self.ACCENT_BLUE,
+            fg=self.TEXT_PRIMARY,
+            font=('Segoe UI', 9, 'bold'),
+            relief=tk.FLAT,
+            padx=16,
+            pady=10,
+            cursor="hand2",
+            activebackground=self.ACCENT_RED,
+            activeforeground=self.TEXT_PRIMARY
+        )
+        load_btn.pack(side=tk.LEFT, padx=5)
         
-        tk.Button(input_btn_frame, text="🧹 Clear", command=self.clear_input,
-                 bg=self.error_red, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=15, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=3)
+        clear_btn = tk.Button(
+            button_frame,
+            text="🧹 Clear Input",
+            command=self.clear_input,
+            bg=self.ACCENT_RED,
+            fg=self.TEXT_PRIMARY,
+            font=('Segoe UI', 9, 'bold'),
+            relief=tk.FLAT,
+            padx=16,
+            pady=10,
+            cursor="hand2",
+            activebackground=self.ACCENT_BLUE,
+            activeforeground=self.TEXT_PRIMARY
+        )
+        clear_btn.pack(side=tk.LEFT, padx=5)
+    
+    def create_right_panel(self, parent):
+        """Create right results panel"""
+        right = tk.Frame(parent, bg=self.BG_CARD, relief=tk.FLAT, bd=0)
+        right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        # Right Panel - Results
-        right_panel = tk.Frame(content, bg=self.bg_secondary, highlightthickness=1,
-                              highlightbackground=self.accent_blue)
-        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, 
-                        ipady=20, ipadx=20)
+        # Border effect
+        border = tk.Frame(right, bg=self.BORDER_COLOR, width=1)
+        border.pack(side=tk.LEFT, fill=tk.Y)
         
-        # Results header
-        results_header = tk.Frame(right_panel, bg=self.bg_secondary)
-        results_header.pack(fill=tk.X, pady=(0, 15))
+        content = tk.Frame(right, bg=self.BG_CARD)
+        content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        results_title = tk.Label(results_header, text="🔍 Results",
-                                font=('Segoe UI', 12, 'bold'),
-                                bg=self.bg_secondary, fg=self.accent_red)
-        results_title.pack(anchor=tk.W, side=tk.LEFT)
+        # Header
+        header_frame = tk.Frame(content, bg=self.BG_CARD)
+        header_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        title = tk.Label(header_frame,
+                        text="🔍 Results",
+                        font=('Segoe UI', 12, 'bold'),
+                        bg=self.BG_CARD,
+                        fg=self.ACCENT_RED)
+        title.pack(anchor=tk.W, side=tk.LEFT)
         
         # Action buttons
-        action_frame = tk.Frame(right_panel, bg=self.bg_secondary)
-        action_frame.pack(fill=tk.X, pady=(0, 15))
+        button_frame = tk.Frame(content, bg=self.BG_CARD)
+        button_frame.pack(fill=tk.X, pady=(0, 15))
         
-        tk.Button(action_frame, text="✓ Check Format", command=self.check_format_only,
-                 bg=self.success_green, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=12, pady=7, cursor="hand2").pack(side=tk.LEFT, padx=4)
+        buttons = [
+            ("✓ Check Format", self.check_format_only, self.ACCENT_GREEN),
+            ("⚡ Test Active", self.check_cookies_active, self.ACCENT_RED),
+            ("📊 JSON", self.export_json, self.ACCENT_BLUE),
+            ("📄 CSV", self.export_csv, self.ACCENT_BLUE),
+            ("🗑️ Clear", self.clear_results, "#e74c3c"),
+        ]
         
-        tk.Button(action_frame, text="⚡ Test Active", command=self.check_cookies_active,
-                 bg=self.accent_red, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=12, pady=7, cursor="hand2").pack(side=tk.LEFT, padx=4)
+        for text, cmd, color in buttons:
+            btn = tk.Button(
+                button_frame,
+                text=text,
+                command=cmd,
+                bg=color,
+                fg=self.TEXT_PRIMARY,
+                font=('Segoe UI', 8, 'bold'),
+                relief=tk.FLAT,
+                padx=12,
+                pady=8,
+                cursor="hand2",
+                activebackground=self.ACCENT_RED,
+                activeforeground=self.TEXT_PRIMARY,
+                bd=0
+            )
+            btn.pack(side=tk.LEFT, padx=4)
         
-        tk.Button(action_frame, text="📊 Export JSON", command=self.export_json,
-                 bg=self.accent_blue, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=12, pady=7, cursor="hand2").pack(side=tk.LEFT, padx=4)
-        
-        tk.Button(action_frame, text="📄 Export CSV", command=self.export_csv,
-                 bg=self.accent_blue, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=12, pady=7, cursor="hand2").pack(side=tk.LEFT, padx=4)
-        
-        tk.Button(action_frame, text="🗑️ Clear", command=self.clear_results,
-                 bg=self.error_red, fg='white', font=('Segoe UI', 9, 'bold'),
-                 relief=tk.FLAT, padx=12, pady=7, cursor="hand2").pack(side=tk.LEFT, padx=4)
-        
-        # Results tree
-        tree_frame = tk.Frame(right_panel, bg=self.bg_secondary)
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        # Results table
+        table_frame = tk.Frame(content, bg=self.BG_INPUT, highlightthickness=1,
+                              highlightbackground=self.BORDER_COLOR)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 0))
         
         columns = ('Status', 'Valid', 'Active', 'Name', 'Value', 'Domain', 'Path', 'Expires')
-        self.tree = ttk.Treeview(tree_frame, columns=columns, height=25, 
-                                show='tree headings', style='Modern.Treeview')
+        self.tree = ttk.Treeview(table_frame, columns=columns, height=24,
+                                show='tree headings', style='Premium.Treeview')
         
-        # Column configuration
-        self.tree.column('#0', width=0)
-        self.tree.column('Status', anchor=tk.CENTER, width=50)
-        self.tree.column('Valid', anchor=tk.CENTER, width=70)
-        self.tree.column('Active', anchor=tk.CENTER, width=90)
-        self.tree.column('Name', anchor=tk.W, width=85)
-        self.tree.column('Value', anchor=tk.W, width=130)
-        self.tree.column('Domain', anchor=tk.W, width=85)
-        self.tree.column('Path', anchor=tk.CENTER, width=50)
-        self.tree.column('Expires', anchor=tk.W, width=100)
-        
-        for col in columns:
+        # Column setup
+        widths = [50, 65, 85, 80, 140, 85, 45, 100]
+        for col, width in zip(columns, widths):
+            self.tree.column(col, anchor=tk.W, width=width)
             self.tree.heading(col, text=col)
         
         # Scrollbars
-        scrollbar_v = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        scrollbar_h = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
-        self.tree.configure(yscroll=scrollbar_v.set, xscroll=scrollbar_h.set)
+        vsb = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscroll=vsb.set, xscroll=hsb.set)
         
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar_v.pack(side=tk.RIGHT, fill=tk.Y)
-        scrollbar_h.pack(side=tk.BOTTOM, fill=tk.X)
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
         
-        # === FOOTER ===
-        footer = tk.Frame(main, bg=self.accent_blue, height=50)
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
+    
+    def create_footer(self, parent):
+        """Create footer section"""
+        footer = tk.Frame(parent, bg=self.ACCENT_BLUE, height=50)
         footer.pack(fill=tk.X, side=tk.BOTTOM)
         footer.pack_propagate(False)
         
         self.status_var = tk.StringVar(value="Ready • 0 cookies loaded")
-        status_bar = tk.Label(footer, textvariable=self.status_var,
-                             font=('Segoe UI', 9),
-                             bg=self.accent_blue, fg='white')
-        status_bar.pack(side=tk.LEFT, padx=30, pady=12)
+        status = tk.Label(footer,
+                         textvariable=self.status_var,
+                         font=('Segoe UI', 9),
+                         bg=self.ACCENT_BLUE,
+                         fg=self.TEXT_PRIMARY)
+        status.pack(side=tk.LEFT, padx=30, pady=12)
     
     def load_from_file(self):
-        """Load cookies from a file"""
+        """Load cookies from file"""
         filepath = filedialog.askopenfilename(
             filetypes=[("Text files", "*.txt"), ("CSV files", "*.csv"), ("All files", "*.*")]
         )
@@ -257,143 +318,127 @@ class ModernCookieCheckerGUI:
                     content = f.read()
                 self.input_text.delete(1.0, tk.END)
                 self.input_text.insert(1.0, content)
-                num_cookies = len([c for c in content.split('\n') if c.strip()])
-                self.status_var.set(f"✓ Loaded {num_cookies} cookies from file")
+                num = len([c for c in content.split('\n') if c.strip()])
+                self.status_var.set(f"✓ Loaded {num} cookies")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to load file: {str(e)}")
+                messagebox.showerror("Error", f"Failed to load: {str(e)}")
     
     def check_format_only(self):
-        """Check only cookie format"""
+        """Check cookie format"""
         self.clear_results()
         self.status_var.set("Checking cookie format...")
         self.root.update()
         
-        cookie_strings = self.input_text.get(1.0, tk.END).strip().split('\n')
-        cookie_strings = [c.strip() for c in cookie_strings if c.strip()]
+        cookies = self.input_text.get(1.0, tk.END).strip().split('\n')
+        cookies = [c.strip() for c in cookies if c.strip()]
         
-        if not cookie_strings:
-            messagebox.showwarning("Warning", "Please enter at least one cookie")
+        if not cookies:
+            messagebox.showwarning("Warning", "Enter at least one cookie")
             return
         
-        valid_count = 0
-        for cookie_str in cookie_strings:
+        valid = 0
+        for cookie_str in cookies:
             try:
                 parsed = self.parse_cookie(cookie_str)
                 self.tree.insert('', 'end', values=(
                     '✓', '✓ Valid', '⏸️ Pending',
-                    parsed.get('name', ''),
-                    parsed.get('value', '')[:30] + '...',
-                    parsed.get('domain', ''),
-                    parsed.get('path', ''),
-                    parsed.get('expires', '')
+                    parsed['name'], parsed['value'][:28] + '...',
+                    parsed['domain'], parsed['path'], parsed['expires']
                 ))
-                valid_count += 1
-            except Exception as e:
+                valid += 1
+            except:
                 self.tree.insert('', 'end', values=(
-                    '✗', '✗ Invalid', '❌ Error',
-                    'ERROR', str(e)[:30], '', '', ''
+                    '✗', '✗ Invalid', '❌', 'ERROR', 'Invalid format', '', '', ''
                 ))
         
-        self.status_var.set(f"✓ Format check: {valid_count}/{len(cookie_strings)} valid cookies")
+        self.status_var.set(f"✓ Format check: {valid}/{len(cookies)} valid")
     
     def check_cookies_active(self):
-        """Check if cookies are actually working"""
-        thread = threading.Thread(target=self.test_cookies_active, daemon=True)
+        """Test cookies"""
+        thread = threading.Thread(target=self._test_active, daemon=True)
         thread.start()
     
-    def test_cookies_active(self):
-        """Test cookies against Netflix API"""
+    def _test_active(self):
+        """Background test"""
         self.clear_results()
-        self.checking = True
         
-        cookie_strings = self.input_text.get(1.0, tk.END).strip().split('\n')
-        cookie_strings = [c.strip() for c in cookie_strings if c.strip()]
+        cookies = self.input_text.get(1.0, tk.END).strip().split('\n')
+        cookies = [c.strip() for c in cookies if c.strip()]
         
-        if not cookie_strings:
-            messagebox.showwarning("Warning", "Please enter at least one cookie")
+        if not cookies:
+            messagebox.showwarning("Warning", "Enter at least one cookie")
             return
         
-        self.status_var.set(f"Testing {len(cookie_strings)} cookies...")
+        self.status_var.set(f"Testing {len(cookies)} cookies...")
         self.root.update()
         
-        active_count = 0
-        for idx, cookie_str in enumerate(cookie_strings):
+        active = 0
+        for idx, cookie_str in enumerate(cookies):
             try:
                 parsed = self.parse_cookie(cookie_str)
-                is_active = self.test_netflix_cookie(parsed.get('value', ''))
-                
-                active_status = '✅ ACTIVE' if is_active else '❌ INACTIVE'
+                is_active = self.test_netflix_cookie(parsed['value'])
+                status = '✅ ACTIVE' if is_active else '❌ INACTIVE'
                 
                 self.tree.insert('', 'end', values=(
                     '✓' if is_active else '⚠',
-                    '✓ Valid', active_status,
-                    parsed.get('name', ''),
-                    parsed.get('value', '')[:30] + '...',
-                    parsed.get('domain', ''),
-                    parsed.get('path', ''),
-                    parsed.get('expires', '')
+                    '✓ Valid', status,
+                    parsed['name'], parsed['value'][:28] + '...',
+                    parsed['domain'], parsed['path'], parsed['expires']
                 ))
-                
                 if is_active:
-                    active_count += 1
-            except Exception as e:
+                    active += 1
+            except:
                 self.tree.insert('', 'end', values=(
-                    '✗', '✗ Invalid', '❌ Error',
-                    'ERROR', str(e)[:30], '', '', ''
+                    '✗', '✗ Invalid', '❌', 'ERROR', 'Invalid', '', '', ''
                 ))
             
-            if (idx + 1) % 5 == 0 or idx + 1 == len(cookie_strings):
-                self.status_var.set(f"Testing: {idx + 1}/{len(cookie_strings)} | Active: {active_count}")
+            if (idx + 1) % 5 == 0:
+                self.status_var.set(f"Testing: {idx + 1}/{len(cookies)} | Active: {active}")
                 self.root.update()
         
-        self.checking = False
-        self.status_var.set(f"✓ Completed: {active_count}/{len(cookie_strings)} active cookies")
+        self.status_var.set(f"✓ Complete: {active}/{len(cookies)} active")
     
     def test_netflix_cookie(self, cookie_value, timeout=5):
-        """Test if Netflix cookie is active"""
+        """Test if cookie works"""
         try:
-            decoded_value = unquote(cookie_value)
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            cookies = {'NetflixId': decoded_value}
+            decoded = unquote(cookie_value)
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            cookies = {'NetflixId': decoded}
             
-            response = requests.get(
-                'https://www.netflix.com/api/v1/user',
-                headers=headers, cookies=cookies, timeout=timeout, allow_redirects=False
-            )
-            
-            return response.status_code == 200
+            r = requests.get('https://www.netflix.com/api/v1/user',
+                           headers=headers, cookies=cookies, timeout=timeout)
+            return r.status_code == 200
         except:
             return False
     
     def parse_cookie(self, cookie_str):
-        """Parse a cookie string"""
+        """Parse cookie"""
         c = http.cookies.SimpleCookie()
         c.load(cookie_str)
-        
         if not c:
-            raise ValueError("No valid cookie found")
+            raise ValueError("Invalid cookie")
         
-        morsel = list(c.values())[0]
+        m = list(c.values())[0]
         return {
             'name': list(c.keys())[0],
-            'value': morsel.value,
-            'domain': morsel['domain'] or 'N/A',
-            'path': morsel['path'] or '/',
-            'expires': morsel['expires'] or 'Session',
+            'value': m.value,
+            'domain': m['domain'] or 'N/A',
+            'path': m['path'] or '/',
+            'expires': m['expires'] or 'Session',
         }
     
     def clear_input(self):
-        """Clear input text"""
+        """Clear input"""
         self.input_text.delete(1.0, tk.END)
         self.status_var.set("Input cleared")
     
     def clear_results(self):
-        """Clear results tree"""
+        """Clear results"""
         for item in self.tree.get_children():
             self.tree.delete(item)
     
     def export_json(self):
-        """Export results as JSON"""
+        """Export JSON"""
         if not self.tree.get_children():
             messagebox.showwarning("Warning", "No results to export")
             return
@@ -407,23 +452,23 @@ class ModernCookieCheckerGUI:
             try:
                 results = []
                 for item in self.tree.get_children():
-                    values = self.tree.item(item)['values']
+                    vals = self.tree.item(item)['values']
                     results.append({
-                        'status': values[0], 'valid': values[1], 'active': values[2],
-                        'name': values[3], 'value': values[4], 'domain': values[5],
-                        'path': values[6], 'expires': values[7]
+                        'status': vals[0], 'valid': vals[1], 'active': vals[2],
+                        'name': vals[3], 'value': vals[4], 'domain': vals[5],
+                        'path': vals[6], 'expires': vals[7]
                     })
                 
-                with open(filepath, 'w', encoding='utf-8') as f:
+                with open(filepath, 'w') as f:
                     json.dump(results, f, indent=2)
                 
                 messagebox.showinfo("Success", f"✓ Exported {len(results)} results")
-                self.status_var.set(f"✓ Exported to {filepath}")
+                self.status_var.set(f"✓ Exported JSON")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {str(e)}")
     
     def export_csv(self):
-        """Export results as CSV"""
+        """Export CSV"""
         if not self.tree.get_children():
             messagebox.showwarning("Warning", "No results to export")
             return
@@ -436,21 +481,20 @@ class ModernCookieCheckerGUI:
         if filepath:
             try:
                 import csv
-                with open(filepath, 'w', newline='', encoding='utf-8') as f:
+                with open(filepath, 'w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(['Status', 'Valid', 'Active', 'Name', 'Value', 'Domain', 'Path', 'Expires'])
                     
                     for item in self.tree.get_children():
-                        values = self.tree.item(item)['values']
-                        writer.writerow(values)
+                        writer.writerow(self.tree.item(item)['values'])
                 
-                messagebox.showinfo("Success", f"✓ Exported {len(self.tree.get_children())} results")
-                self.status_var.set(f"✓ Exported to {filepath}")
+                messagebox.showinfo("Success", f"✓ Exported CSV")
+                self.status_var.set(f"✓ Exported CSV")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {str(e)}")
 
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ModernCookieCheckerGUI(root)
+    app = PremiumCookieCheckerGUI(root)
     root.mainloop()
